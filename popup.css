@@ -1,0 +1,190 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1f2330;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --hover: #f3f4f6;
+  --accent: #1a73e8;
+  --warn-bg: #fef7e0;
+  --warn-fg: #8a5a00;
+  --error: #d93025;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1e27;
+    --fg: #e8eaf0;
+    --muted: #9aa0ad;
+    --border: #333846;
+    --hover: #262a35;
+    --accent: #5b9cf8;
+    --warn-bg: #3a3220;
+    --warn-fg: #f6c26b;
+    --error: #f28b82;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI",
+    sans-serif;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 6px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+
+/* 中身が空のセット(インポートしたもの等) */
+.row:disabled {
+  color: var(--muted);
+  cursor: default;
+  background: none;
+}
+
+.row.confirm {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+}
+
+.row-icon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.key {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.count {
+  flex: 0 0 auto;
+  min-width: 18px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* 名前は控えめに。主役はセットの一覧 */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.status {
+  margin: 6px 4px 0;
+  font-size: 11px;
+  color: var(--error);
+}
+
+.icon-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.icon-btn svg {
+  display: block;
+}
+
+.link {
+  flex: 0 0 auto;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.hidden {
+  display: none;
+}
+
+.status:empty {
+  display: none;
+}

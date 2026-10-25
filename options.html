@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bookmarks Launcher の設定</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main id="main">
+      <h1>Bookmarks Launcher</h1>
+
+      <section>
+        <h2>セット</h2>
+        <p class="note">
+          別々のフォルダにあるブックマークを1つにまとめて、ポップアップから1クリックで開けるようにします。
+          ブックマークのタイトルや URL を後で直すと、セットにもそのまま反映されます。
+        </p>
+        <ul id="sets" class="sets"></ul>
+        <div class="actions">
+          <button type="button" id="newSet" class="button primary">新しいセット</button>
+          <span class="spacer"></span>
+          <button type="button" id="export" class="button">エクスポート</button>
+          <button type="button" id="import" class="button">インポート</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden />
+        </div>
+        <p id="message" class="message"></p>
+      </section>
+
+      <section>
+        <h2>ショートカットキー</h2>
+        <p class="note">
+          スロットにセットかフォルダを割り当て、そのスロットにキーを設定すると、ポップアップを開かずにまとめて開けます。
+          キーは初期状態では割り当てていません。
+        </p>
+        <table class="slots">
+          <tbody id="slots"></tbody>
+        </table>
+        <button type="button" id="shortcuts" class="button">ショートカットキーを設定する</button>
+      </section>
+    </main>
+
+    <main id="editor" class="hidden">
+      <div class="editor-head">
+        <h1 id="editorTitle"></h1>
+        <label class="name-field">
+          <span class="field-label">名前</span>
+          <input type="text" id="setName" class="input" placeholder="例: 朝のチェック" autocomplete="off" />
+        </label>
+      </div>
+
+      <div id="missingBlock" class="hidden">
+        <h2>ブックマークにないもの</h2>
+        <p class="note">
+          この環境のブックマークに見つからない項目です。保存してある URL のまま開きます。
+          不要ならクリックして選択を外してください。
+        </p>
+        <ul id="missing" class="tree"></ul>
+      </div>
+
+      <div class="picker-head">
+        <h2>ブックマーク</h2>
+        <div class="view-tabs" role="tablist" aria-label="表示の切り替え">
+          <button type="button" role="tab" class="view-tab" data-view="tree">ツリー</button>
+          <button type="button" role="tab" class="view-tab" data-view="bar">ブックマークバー</button>
+        </div>
+      </div>
+      <p class="note">クリックで選択/解除します。選択中のものは枠で囲んで表示します。ブックマークバーのフォルダは、押すと中身がメニューで開きます。</p>
+      <input type="search" id="bookmarkSearch" class="input" placeholder="タイトルや URL で絞り込む" autocomplete="off" />
+      <div id="picker" class="picker"></div>
+      <p id="pickerEmpty" class="note hidden">該当するブックマークがありません</p>
+
+      <section id="selectedSection" class="selected-section">
+        <h2 id="selectedHeading"></h2>
+        <ul id="selectedList" class="selected-list"></ul>
+        <p id="selectedEmpty" class="note hidden">まだ何も選択していません</p>
+      </section>
+
+      <div id="menus"></div>
+
+      <div class="editor-footer">
+        <span class="selected-count"><button type="button" id="selectedCount" class="link" title="選択中の一覧へ"></button></span>
+        <button type="button" id="cancel" class="button">キャンセル</button>
+        <button type="button" id="save" class="button primary">保存</button>
+      </div>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

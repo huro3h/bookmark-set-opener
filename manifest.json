@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmarks Launcher",
+  "version": "1.0.0",
+  "description": "ブックマークフォルダの中身をワンクリックでまとめてタブに開く",
+  "permissions": ["bookmarks", "storage", "favicon"],
+  "action": {
+    "default_title": "Bookmarks Launcher",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "01_open_slot": {
+      "description": "スロット1のフォルダを開く"
+    },
+    "02_open_slot": {
+      "description": "スロット2のフォルダを開く"
+    },
+    "03_open_slot": {
+      "description": "スロット3のフォルダを開く"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

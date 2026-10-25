@@ -1,0 +1,697 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1f2330;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --hover: #f3f4f6;
+  --accent: #1a73e8;
+  --accent-tint: #e8f0fe;
+  --toolbar: #f1f3f4;
+  --chip-hover: #e2e5e9;
+  --on-accent: #ffffff;
+  --warn-bg: #fef7e0;
+  --warn-fg: #8a5a00;
+  --error: #d93025;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1e27;
+    --fg: #e8eaf0;
+    --muted: #9aa0ad;
+    --border: #333846;
+    --hover: #262a35;
+    --accent: #5b9cf8;
+    --accent-tint: #1f2c44;
+    --toolbar: #23262f;
+    --chip-hover: #343846;
+    --on-accent: #10131a;
+    --warn-bg: #3a3220;
+    --warn-fg: #f6c26b;
+    --error: #f28b82;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI",
+    sans-serif;
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+section + section {
+  margin-top: 36px;
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: 20px;
+}
+
+h2 {
+  margin: 20px 0 8px;
+  font-size: 15px;
+}
+
+section > h2:first-child {
+  margin-top: 0;
+}
+
+.note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---- ボタン ---- */
+
+.button {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--accent);
+}
+
+.button.primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+/* 枠付きのアイコンボタン。ホバーで塗りつぶす(simple_memo と同じ) */
+.icon-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.icon-btn svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.icon-btn.edit {
+  color: var(--accent);
+}
+
+.icon-btn.danger {
+  color: var(--error);
+}
+
+.icon-btn.edit:hover {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.icon-btn.danger:hover,
+.icon-btn.danger.confirm {
+  color: var(--on-accent);
+  background: var(--error);
+  border-color: var(--error);
+}
+
+.icon-btn.confirm {
+  padding: 0 8px 0 6px;
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.message {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.message.error {
+  color: var(--error);
+}
+
+/* ---- セット一覧 ---- */
+
+.sets {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.set {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.set-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.set-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.set-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.set-meta .missing {
+  color: var(--warn-fg);
+}
+
+.bg-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.move {
+  display: flex;
+  flex-direction: column;
+}
+
+.move button {
+  width: 22px;
+  height: 14px;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.move button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.move button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+/* ---- スロット ---- */
+
+.slots {
+  width: 100%;
+  margin-bottom: 16px;
+  border-collapse: collapse;
+}
+
+.slots td {
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.slots td:first-child {
+  width: 5em;
+  white-space: nowrap;
+}
+
+select,
+.input {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+select.missing {
+  color: var(--error);
+}
+
+.key {
+  width: 8em;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- セットの編集 ---- */
+
+/* ブックマークバーを再現するので、編集画面はブラウザの横幅いっぱいに広げる。名前の欄は長くなりすぎないよう元の幅 */
+#editor {
+  max-width: none;
+  padding: 32px 24px;
+}
+
+/* 見出しの右に名前の欄を並べる */
+.editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-bottom: 8px;
+}
+
+.editor-head h1 {
+  margin: 0;
+}
+
+.name-field {
+  display: flex;
+  flex: 0 1 420px;
+  align-items: center;
+  gap: 10px;
+}
+
+.name-field .field-label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 14px;
+}
+
+.field-label {
+  font-weight: 600;
+}
+
+.picker-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.picker-head h2 {
+  margin: 0 0 8px;
+}
+
+.picker-head + .note {
+  margin-bottom: 8px;
+}
+
+/* 表示の切り替えタブ。選択中は下線 */
+.view-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.view-tab {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.view-tab:hover {
+  color: var(--fg);
+}
+
+.view-tab[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.picker {
+  margin-top: 8px;
+}
+
+/* ---- 選択できる行(ツリーと「ブックマークにないもの」) ----
+   チェックボックスの代わりに、選択中は枠とハイライトで示す。
+   枠は box-shadow で太らせて、選択の有無で大きさが変わらないようにする */
+
+.node-btn {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.node-btn:hover {
+  background: var(--hover);
+}
+
+.node-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.node-btn.selected {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.node-btn.partial {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.url {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.favicon,
+.node-icon {
+  flex: 0 0 auto;
+}
+
+.node-icon {
+  color: var(--muted);
+}
+
+.tally {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tally.active {
+  color: var(--accent);
+}
+
+/* ---- ツリー ---- */
+
+.tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.node + .node {
+  margin-top: 2px;
+}
+
+.node-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+}
+
+.node-btn .title {
+  flex: 0 1 auto;
+}
+
+.node-btn .url {
+  flex: 1 1 0;
+}
+
+.node-btn.folder .title {
+  font-weight: 600;
+}
+
+.node-btn .tally {
+  margin-left: auto;
+}
+
+/* ---- ブックマークバー(ブラウザのバーの再現) ---- */
+
+.bmbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--toolbar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.bmbar-items {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* その他のブックマーク等は右端(ブラウザと同じ) */
+.bmbar-rest {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
+.bm-chip,
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.bm-chip {
+  max-width: 180px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 14px;
+}
+
+.bm-chip:hover,
+.bm-chip.open,
+.menu-item:hover,
+.menu-item.open {
+  background: var(--chip-hover);
+}
+
+.bm-chip:focus-visible,
+.menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.bm-chip.selected,
+.menu-item.selected {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* 中に選択中のブックマークがあるフォルダ */
+.bm-chip.has-selected,
+.menu-item.has-selected {
+  border-color: var(--accent);
+}
+
+.bm-chip.has-selected .node-icon,
+.menu-item.has-selected .node-icon {
+  color: var(--accent);
+}
+
+/* ドロップダウンのメニュー。サブメニューも同じ見た目 */
+.bm-menu {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: 340px;
+  max-height: calc(100vh - 16px);
+  padding: 6px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.menu-item {
+  width: 100%;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.menu-item + .menu-item {
+  margin-top: 1px;
+}
+
+.menu-item .title {
+  flex: 1 1 auto;
+}
+
+.submenu-arrow {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  color: var(--muted);
+}
+
+.menu-sep {
+  width: 100%;
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.menu-item.select-all {
+  color: var(--accent);
+}
+
+.editor-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+/* ---- 選択中のブックマーク ---- */
+
+.selected-section {
+  margin-top: 28px;
+}
+
+.selected-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.sel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sel-row .title {
+  flex: 0 1 auto;
+  max-width: 40%;
+}
+
+.sel-row .url {
+  flex: 1 1 0;
+}
+
+.tag {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+  border-radius: 9px;
+}
+
+.link {
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.selected-count {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--muted);
+}
