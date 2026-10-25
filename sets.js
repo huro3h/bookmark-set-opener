@@ -81,7 +81,9 @@ export function exportData(sets) {
   };
 }
 
-// 同じ id のセットは置き換え(同じ環境で書き出したものを戻す場合)、それ以外は末尾に足す。
+// ファイルにはセットの並び(配列の順 = ポップアップの表示順)とセットの中の並び(items の順 = 開く順)がそのまま入っている。
+// 取り込んだセットはファイルの並びのまま末尾にまとめ、同じ id のセットは置き換える(同じ環境で書き出したものを戻す場合)。
+// ファイルにないセットは今の並びのまま前に残る。全部のセットを書き出したファイルを戻せば、並びは書き出したときと同じになる。
 // 取り込んだセットの数を返す。形式が違えば例外。
 export async function importData(data) {
   if (data?.format !== FORMAT || !Array.isArray(data.sets)) {
@@ -99,11 +101,7 @@ export async function importData(data) {
     }));
 
   const { sets, bindings } = await getSettings();
-  for (const set of incoming) {
-    const i = sets.findIndex((s) => s.id === set.id);
-    if (i >= 0) sets[i] = set;
-    else sets.push(set);
-  }
-  await saveSets(sets, bindings);
+  const incomingIds = new Set(incoming.map((s) => s.id));
+  await saveSets([...sets.filter((s) => !incomingIds.has(s.id)), ...incoming], bindings);
   return incoming.length;
 }

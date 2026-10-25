@@ -1,6 +1,7 @@
 import { readTree } from "./bookmarks.js";
 import { exportData, importData, loadSets, storeSets } from "./sets.js";
 import { getSettings, parseTargetKey, saveSlots, targetKey } from "./settings.js";
+import { enableDragReorder, handle } from "./drag.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,25 +29,6 @@ function iconButton(icon, label, className, onClick) {
   return b;
 }
 
-// 1回目のクリックで確認表示(赤く塗って文言を添える)に変え、3秒以内のもう一度で実行する(confirm() は使わない)
-function confirmIconButton(icon, label, confirmLabel, onConfirm) {
-  const b = iconButton(icon, label, "danger", () => {
-    if (!b.classList.contains("confirm")) {
-      b.classList.add("confirm");
-      b.title = confirmLabel;
-      b.insertAdjacentHTML("beforeend", `<span class="confirm-label">${confirmLabel}</span>`);
-      setTimeout(() => {
-        b.classList.remove("confirm");
-        b.title = label;
-        b.querySelector(".confirm-label")?.remove();
-      }, 3000);
-      return;
-    }
-    onConfirm();
-  });
-  return b;
-}
-
 function showMessage(text, isError = false) {
   $("message").textContent = text;
   $("message").classList.toggle("error", isError);
@@ -56,23 +38,10 @@ function showMessage(text, isError = false) {
 
 async function renderMain() {
   $("sets").replaceChildren(
-    ...sets.map((set, i) => {
+    ...sets.map((set) => {
       const li = document.createElement("li");
       li.className = "set";
-
-      const move = document.createElement("div");
-      move.className = "move";
-      const up = document.createElement("button");
-      up.textContent = "▲";
-      up.title = "上へ";
-      up.disabled = i === 0;
-      up.addEventListener("click", () => moveSet(i, -1));
-      const down = document.createElement("button");
-      down.textContent = "▼";
-      down.title = "下へ";
-      down.disabled = i === sets.length - 1;
-      down.addEventListener("click", () => moveSet(i, 1));
-      move.append(up, down);
+      li.dataset.key = set.id;
 
       const text = document.createElement("div");
       text.className = "set-text";
@@ -105,11 +74,11 @@ async function renderMain() {
       bg.append(bgBox, "バックグラウンドで開く");
 
       li.append(
-        move,
+        handle(),
         text,
         bg,
         iconButton(EDIT_ICON, "編集", "edit", () => openEditor(set)),
-        confirmIconButton(DELETE_ICON, "削除", "もう一度で削除", () => deleteSet(set.id)),
+        iconButton(DELETE_ICON, "削除", "danger", () => deleteSet(set.id)),
       );
       return li;
     }),
@@ -170,22 +139,77 @@ async function renderSlots() {
   );
 }
 
-async function moveSet(i, delta) {
-  [sets[i], sets[i + delta]] = [sets[i + delta], sets[i]];
+// セット一覧はハンドルをドラッグして並べ替える(ポップアップでの表示順)
+enableDragReorder($("sets"), async (keys) => {
+  sets = keys.map((id) => sets.find((s) => s.id === id));
   await storeSets(sets);
   await renderMain();
-}
+});
 
+// 1クリックで消し、トーストの「元に戻す」で戻せるようにする(確認の二度押しはしない)
 async function deleteSet(id) {
+  const index = sets.findIndex((s) => s.id === id);
+  const set = sets[index];
   sets = sets.filter((s) => s.id !== id);
   await storeSets(sets);
-  // このセットを割り当てていたスロットは空にする
-  if (slots.some((t) => t?.type === "set" && t.id === id)) {
-    slots = slots.map((t) => (t?.type === "set" && t.id === id ? null : t));
+  // このセットを割り当てていたスロットは空にする(元に戻すときに割り当て直す)
+  const slotIndexes = slots.flatMap((t, i) => (t?.type === "set" && t.id === id ? [i] : []));
+  if (slotIndexes.length) {
+    slots = slots.map((t, i) => (slotIndexes.includes(i) ? null : t));
+    await saveSlots(slots);
+  }
+  await renderMain();
+  toast(`「${set.name}」を削除しました`, "元に戻す", () => restoreSet(set, index, slotIndexes));
+}
+
+async function restoreSet(set, index, slotIndexes) {
+  if (sets.some((s) => s.id === set.id)) return;
+  sets.splice(Math.min(index, sets.length), 0, set);
+  await storeSets(sets);
+  // 削除したあとにほかのものを割り当てたスロットは、そのままにする
+  const reassign = slotIndexes.filter((i) => slots[i] === null);
+  if (reassign.length) {
+    slots = slots.map((t, i) => (reassign.includes(i) ? { type: "set", id: set.id } : t));
     await saveSlots(slots);
   }
   await renderMain();
 }
+
+// ---- トースト ----
+// 画面下の中央に数秒出す。action を渡すとボタンを付ける(押すとトーストを閉じて実行)。
+// マウスを乗せている間は消えない。新しいトーストは前のものを置き換える(前の「元に戻す」はできなくなる)。
+const TOAST_MS = 6000;
+let toastTimer = null;
+
+function toast(message, actionLabel, action) {
+  const el = $("toast");
+  $("toastMessage").textContent = message;
+  const btn = $("toastAction");
+  btn.hidden = !action;
+  btn.textContent = actionLabel ?? "";
+  btn.onclick = action
+    ? () => {
+        hideToast();
+        action();
+      }
+    : null;
+  el.classList.add("show");
+  scheduleHide();
+}
+
+function scheduleHide() {
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, TOAST_MS);
+}
+
+function hideToast() {
+  clearTimeout(toastTimer);
+  $("toast").classList.remove("show");
+  $("toastAction").onclick = null;
+}
+
+$("toast").addEventListener("mouseenter", () => clearTimeout(toastTimer));
+$("toast").addEventListener("mouseleave", () => $("toast").classList.contains("show") && scheduleHide());
 
 $("newSet").addEventListener("click", () => openEditor(null));
 $("shortcuts").addEventListener("click", () => chrome.tabs.create({ url: "chrome://extensions/shortcuts" }));
@@ -221,51 +245,57 @@ $("importFile").addEventListener("change", async () => {
 
 // ---- セットの編集 ----
 
-let editing = null; // { id, selected: Set<bookmarkId>, missing: [{ url, title, checked }] }
-let view = "tree"; // "tree" | "bar"。最後に使った表示を storage の editorView に覚える
+// { id, selected: Set<bookmarkId>, missing: [{ url, title, checked }], order: キーの配列, undo: 状態の配列, redo: 状態の配列 }
+// missing はこの環境のブックマークに見つからない項目。選択中の一覧に出し、× で外す(checked: false)。
+// order は選択中の項目の並び(= 開く順)。キーはブックマークの ID か "missing:<missing の添字>"。
+// 新しく選んだものは末尾に足し、選択中の一覧でドラッグして並べ替える。
+let editing = null;
 
-// tree を引きやすくした索引。フォルダの子孫のブックマーク、各要素の祖先フォルダ(上から順)、フォルダ直下の要素
+// tree を引きやすくした索引。フォルダの子孫のブックマーク、フォルダ直下の要素
 let descendantsOf = new Map(); // folderId -> bookmarkId[]
-let ancestorsOf = new Map(); // id -> folderId[]
 let childrenOf = new Map(); // folderId | null -> entry[](null は最上位のフォルダ)
-let entryOf = new Map(); // id -> entry
+let bookmarkOf = new Map(); // bookmarkId -> entry
 
 function indexHierarchy() {
   descendantsOf = new Map();
-  ancestorsOf = new Map();
   childrenOf = new Map([[null, []]]);
-  entryOf = new Map();
+  bookmarkOf = new Map();
   const stack = [];
   for (const e of tree) {
     while (stack.length && stack.at(-1).depth >= e.depth) stack.pop();
-    ancestorsOf.set(e.id, stack.map((f) => f.id));
     childrenOf.get(stack.at(-1)?.id ?? null).push(e);
-    entryOf.set(e.id, e);
     if (e.kind === "folder") {
       descendantsOf.set(e.id, []);
       childrenOf.set(e.id, []);
       stack.push(e);
     } else {
+      bookmarkOf.set(e.id, e);
       for (const f of stack) descendantsOf.get(f.id).push(e.id);
     }
   }
 }
 
-async function openEditor(set) {
+function openEditor(set) {
   indexHierarchy();
   editing = {
     id: set?.id ?? null,
     selected: new Set(set?.items.filter((item) => item.bookmarkId).map((item) => item.bookmarkId)),
     missing: (set?.items ?? []).filter((item) => !item.bookmarkId).map((item) => ({ ...item, checked: true })),
+    // 保存してある並びをそのまま使う
+    order: (() => {
+      let m = 0;
+      return (set?.items ?? []).map((item) => item.bookmarkId ?? `missing:${m++}`);
+    })(),
+    undo: [],
+    redo: [],
   };
-  view = (await chrome.storage.local.get("editorView")).editorView === "bar" ? "bar" : "tree";
   $("editorTitle").textContent = set ? "セットを編集" : "新しいセット";
   $("setName").value = set?.name ?? "";
-  $("bookmarkSearch").value = "";
   $("main").classList.add("hidden");
   $("editor").classList.remove("hidden");
-  renderMissing();
-  renderPicker();
+  normalizeOrder();
+  renderBar();
+  syncSelection();
   window.scrollTo(0, 0);
   $("setName").focus();
 }
@@ -276,6 +306,80 @@ function closeEditor() {
   $("editor").classList.add("hidden");
   $("main").classList.remove("hidden");
 }
+
+// ---- Undo / Redo ----
+// 選択を変える操作(ブックマークを押す・すべて選択/解除・一覧の ×)を1回ずつ記録する。
+// 記録するのは操作前の選択の写し。名前の入力欄の文字は対象外(入力欄そのものの Undo に任せる)。
+
+const HISTORY_LIMIT = 200;
+
+function snapshot() {
+  return { selected: new Set(editing.selected), missing: editing.missing.map((m) => m.checked), order: [...editing.order] };
+}
+
+function restore(state) {
+  editing.selected = state.selected;
+  editing.missing.forEach((m, i) => (m.checked = state.missing[i]));
+  editing.order = state.order;
+}
+
+// order を選択中の項目とそろえる。外れたものを抜き、新しく選ばれたものを末尾に足す
+// (まとめて選んだときはブックマークの並び順、そのあとにブックマークにない項目)
+function normalizeOrder() {
+  const wanted = [
+    ...tree.filter((e) => e.kind === "bookmark" && editing.selected.has(e.id)).map((e) => e.id),
+    ...editing.missing.flatMap((m, i) => (m.checked ? [`missing:${i}`] : [])),
+  ];
+  const wantedSet = new Set(wanted);
+  const kept = editing.order.filter((k) => wantedSet.has(k));
+  const keptSet = new Set(kept);
+  editing.order = [...kept, ...wanted.filter((k) => !keptSet.has(k))];
+}
+
+// 選択や並びを変える操作はすべてここを通す
+function changeSelection(apply) {
+  const before = snapshot();
+  apply();
+  normalizeOrder();
+  const after = snapshot();
+  const same = before.order.length === after.order.length && before.order.every((k, i) => k === after.order[i]);
+  if (!same) {
+    editing.undo.push(before);
+    if (editing.undo.length > HISTORY_LIMIT) editing.undo.shift();
+    editing.redo = [];
+  }
+  syncSelection();
+}
+
+function undo() {
+  if (!editing?.undo.length) return;
+  editing.redo.push(snapshot());
+  restore(editing.undo.pop());
+  syncSelection();
+}
+
+function redo() {
+  if (!editing?.redo.length) return;
+  editing.undo.push(snapshot());
+  restore(editing.redo.pop());
+  syncSelection();
+}
+
+$("undo").addEventListener("click", undo);
+$("redo").addEventListener("click", redo);
+
+// ⌘Z / ⇧⌘Z(Windows などは Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)。文字入力欄にいる間はそちらの Undo を優先する
+document.addEventListener("keydown", (ev) => {
+  if (!editing || !(ev.metaKey || ev.ctrlKey) || ev.altKey) return;
+  if (ev.target.closest("input, textarea")) return;
+  const key = ev.key.toLowerCase();
+  if (key === "z" && !ev.shiftKey) undo();
+  else if ((key === "z" && ev.shiftKey) || (key === "y" && ev.ctrlKey)) redo();
+  else return;
+  ev.preventDefault();
+});
+
+// ---- 部品 ----
 
 // ブラウザがキャッシュしているファビコン(ブックマークバーと同じもの)。favicon 権限が要る。
 // 一度も開いたことのないサイトは既定の地球儀アイコンになる。高解像度の画面向けに 32px を 16px で表示する。
@@ -293,14 +397,6 @@ const FOLDER_SVG = `<svg class="node-icon" viewBox="0 0 24 24" width="16" height
   <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"
     fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
 </svg>`;
-
-function hostOf(url) {
-  try {
-    return new URL(url).host || url;
-  } catch {
-    return url;
-  }
-}
 
 function span(className, text) {
   const s = document.createElement("span");
@@ -321,100 +417,15 @@ function pickButton(className, kind, id, onClick) {
 }
 
 function toggleBookmark(id) {
-  editing.selected.has(id) ? editing.selected.delete(id) : editing.selected.add(id);
-  syncSelection();
+  changeSelection(() => (editing.selected.has(id) ? editing.selected.delete(id) : editing.selected.add(id)));
 }
 
 // まとめて選択する。全部選択済みなら全部解除する
 function toggleAll(ids) {
-  const all = ids.length > 0 && ids.every((id) => editing.selected.has(id));
-  for (const id of ids) all ? editing.selected.delete(id) : editing.selected.add(id);
-  syncSelection();
-}
-
-function bookmarkButton(e, className) {
-  const b = pickButton(className, "bookmark", e.id, () => toggleBookmark(e.id));
-  b.title = e.url;
-  b.append(favicon(e.url), span("title", e.title || e.url), span("url", hostOf(e.url)));
-  return b;
-}
-
-function renderMissing() {
-  $("missingBlock").classList.toggle("hidden", editing.missing.length === 0);
-  $("missing").replaceChildren(
-    ...editing.missing.map((item, i) => {
-      const li = document.createElement("li");
-      const b = pickButton("node-btn", "missing", String(i), () => {
-        item.checked = !item.checked;
-        syncSelection();
-      });
-      b.title = item.url;
-      b.append(favicon(item.url), span("title", item.title || item.url), span("url", item.url));
-      li.append(b);
-      return li;
-    }),
-  );
-}
-
-// 絞り込みに当たるブックマークの ID。絞り込んでいなければ null
-function matchedIds() {
-  const query = $("bookmarkSearch").value.trim().toLowerCase();
-  if (!query) return null;
-  return new Set(
-    tree
-      .filter((e) => e.kind === "bookmark" && (e.title.toLowerCase().includes(query) || e.url.toLowerCase().includes(query)))
-      .map((e) => e.id),
-  );
-}
-
-// ツリーのフォルダ行が操作する対象。絞り込み中は当たったものだけ
-function targetsOf(folderId, matched) {
-  const all = descendantsOf.get(folderId);
-  return matched ? all.filter((id) => matched.has(id)) : all;
-}
-
-function renderPicker() {
-  for (const tab of document.querySelectorAll(".view-tab")) {
-    tab.setAttribute("aria-selected", String(tab.dataset.view === view));
-  }
-  // ブックマークバーに検索欄はないので、絞り込みはツリーでだけ使う
-  $("bookmarkSearch").classList.toggle("hidden", view === "bar");
-  if (view === "bar") renderBar();
-  else renderTree();
-  syncSelection();
-}
-
-// ツリー: フォルダ階層どおりに字下げして並べる。絞り込み中は当たったブックマークとその祖先フォルダだけを出す。
-// フォルダの行を押すと、中のブックマーク(サブフォルダを含む)をまとめて選択/解除する。
-function renderTree() {
-  const matched = matchedIds();
-  const visibleFolders = matched && new Set([...matched].flatMap((id) => ancestorsOf.get(id)));
-  const rows = [];
-
-  for (const e of tree) {
-    if (matched && (e.kind === "bookmark" ? !matched.has(e.id) : !visibleFolders.has(e.id))) continue;
-
-    const li = document.createElement("li");
-    li.className = `node ${e.kind}`;
-    li.style.paddingLeft = `${e.depth * 20}px`;
-
-    if (e.kind === "folder") {
-      const b = pickButton("node-btn folder", "folder", e.id, () => toggleAll(targetsOf(e.id, matchedIds())));
-      b.title = "クリックで中のブックマークをまとめて選択/解除";
-      b.insertAdjacentHTML("beforeend", FOLDER_SVG);
-      b.append(span("title", e.title || "(名前なし)"), span("tally", ""));
-      li.append(b);
-    } else {
-      li.append(bookmarkButton(e, "node-btn"));
-    }
-    rows.push(li);
-  }
-
-  const ul = document.createElement("ul");
-  ul.className = "tree";
-  ul.append(...rows);
-  $("picker").replaceChildren(ul);
-  $("pickerEmpty").classList.toggle("hidden", rows.length > 0);
+  changeSelection(() => {
+    const all = ids.length > 0 && ids.every((id) => editing.selected.has(id));
+    for (const id of ids) all ? editing.selected.delete(id) : editing.selected.add(id);
+  });
 }
 
 // ブックマークバー: ブラウザ上部のブックマークバーをそのまま再現する。
@@ -434,7 +445,6 @@ function renderBar() {
   for (const top of childrenOf.get(null)) if (top.id !== "1") rest.append(barItem(top));
   bar.append(items, rest);
   $("picker").replaceChildren(bar);
-  $("pickerEmpty").classList.add("hidden");
 }
 
 function barItem(e) {
@@ -458,15 +468,21 @@ function folderMenuButton(e, className, level) {
   b.append(span("title", e.title || "(名前なし)"));
   if (level > 0) b.append(span("submenu-arrow", "›"));
   const open = () => openMenu(e.id, b, level);
+  let hoveredOpenAt = 0;
   b.addEventListener("click", () => {
-    // バーのフォルダは押すたびに開閉する。メニューの中のフォルダは開くだけ
-    if (level === 0 && openMenus[0]?.folderId === e.id) closeMenus(0);
+    // バーのフォルダは押すたびに開閉する。メニューの中のフォルダは開くだけ。
+    // ただし乗せただけで開いた直後のクリックでは閉じない(開いたものを押した瞬間に閉じてしまうため)
+    const justHovered = Date.now() - hoveredOpenAt < 600;
+    if (level === 0 && openMenus[0]?.folderId === e.id && !justHovered) closeMenus(0);
     else open();
   });
   // ブラウザと同じく、メニューの中ではマウスを乗せただけでサブメニューを開く。
   // バーの上でも、どれかのメニューを開いている間は乗せるだけで切り替える
   b.addEventListener("mouseenter", () => {
-    if (level > 0 || (openMenus.length && openMenus[0].folderId !== e.id)) open();
+    if (level > 0 || (openMenus.length && openMenus[0].folderId !== e.id)) {
+      open();
+      hoveredOpenAt = Date.now();
+    }
   });
   return b;
 }
@@ -552,11 +568,9 @@ window.addEventListener("resize", () => closeMenus(0));
 
 // 選択状態を見た目に反映する。描き直すとフォーカスやスクロールが飛ぶので、今ある要素のクラスだけを書き換える。
 //   ブックマーク: 選択中は .selected(枠とハイライト)
-//   ツリーのフォルダ: 全部選択で .selected、一部なら .partial(点線の枠)
 //   バーとメニューのフォルダ: 中(サブフォルダを含む)に選択があれば .has-selected
 //   メニューの「すべて選択」: 全部選択済みなら「すべて解除」に変える
 function syncSelection() {
-  const matched = matchedIds();
   const mark = (el, selected) => {
     el.classList.toggle("selected", selected);
     el.setAttribute("aria-pressed", String(selected));
@@ -565,42 +579,35 @@ function syncSelection() {
     const { kind, id } = el.dataset;
     if (kind === "bookmark") {
       mark(el, editing.selected.has(id));
-    } else if (kind === "missing") {
-      mark(el, editing.missing[Number(id)].checked);
     } else if (kind === "folder-menu") {
       el.classList.toggle("has-selected", descendantsOf.get(id).some((t) => editing.selected.has(t)));
     } else if (kind === "select-all") {
       const ids = descendantsOf.get(id);
       const all = ids.every((t) => editing.selected.has(t));
       el.textContent = `${all ? "このフォルダをすべて解除" : "このフォルダをすべて選択"} (${ids.length})`;
-    } else {
-      const targets = targetsOf(id, matched);
-      const n = targets.filter((t) => editing.selected.has(t)).length;
-      const tally = el.querySelector(".tally");
-      tally.textContent = n ? `${n} / ${targets.length}` : `${targets.length}`;
-      tally.classList.toggle("active", n > 0);
-      mark(el, n > 0 && n === targets.length);
-      el.classList.toggle("partial", n > 0 && n < targets.length);
     }
   }
-  updateEditorFooter();
+  $("undo").disabled = editing.undo.length === 0;
+  $("redo").disabled = editing.redo.length === 0;
+  updateEditorState();
 }
 
 function selectedItems() {
-  // ブックマークは木の並び順、そのあとにブックマークにない項目を元の順で。同じ URL は1つにまとめる
-  const items = [
-    ...tree
-      .filter((e) => e.kind === "bookmark" && editing.selected.has(e.id))
-      .map((e) => ({ url: e.url, title: e.title, bookmarkId: e.id })),
-    ...editing.missing.filter((item) => item.checked).map(({ url, title }) => ({ url, title, bookmarkId: null })),
-  ];
+  // order の並び(= 開く順)。同じ URL は1つにまとめる
+  const items = editing.order.map((key) => {
+    if (key.startsWith("missing:")) {
+      const { url, title } = editing.missing[Number(key.slice(8))];
+      return { key, url, title, bookmarkId: null };
+    }
+    const e = bookmarkOf.get(key);
+    return { key, url: e.url, title: e.title, bookmarkId: e.id };
+  });
   const seen = new Set();
   return items.filter((item) => !seen.has(item.url) && seen.add(item.url));
 }
 
-function updateEditorFooter() {
+function updateEditorState() {
   const items = selectedItems();
-  $("selectedCount").textContent = `${items.length} 件を選択中`;
   $("save").disabled = items.length === 0 || !$("setName").value.trim();
   renderSelectedList(items);
 }
@@ -609,18 +616,20 @@ const REMOVE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="
 
 // 選択中のブックマークの一覧(保存したときにセットに入るもの、開く順)。× で選択を外せる
 function renderSelectedList(items) {
-  $("selectedHeading").textContent = `選択中のブックマーク (${items.length})`;
+  $("selectedHeading").textContent = `${items.length} 件を選択中`;
   $("selectedEmpty").classList.toggle("hidden", items.length > 0);
   $("selectedList").replaceChildren(
     ...items.map((item) => {
       const li = document.createElement("li");
       li.className = "sel-row";
-      const remove = iconButton(REMOVE_ICON, "選択を外す", "danger", () => {
-        if (item.bookmarkId) editing.selected.delete(item.bookmarkId);
-        else editing.missing.find((m) => m.url === item.url).checked = false;
-        syncSelection();
-      });
-      li.append(favicon(item.url), span("title", item.title || item.url), span("url", item.url), remove);
+      li.dataset.key = item.key;
+      const remove = iconButton(REMOVE_ICON, "選択を外す", "danger", () =>
+        changeSelection(() => {
+          if (item.bookmarkId) editing.selected.delete(item.bookmarkId);
+          else editing.missing.find((m) => m.url === item.url).checked = false;
+        }),
+      );
+      li.append(handle(), favicon(item.url), span("title", item.title || item.url), span("url", item.url), remove);
       if (!item.bookmarkId) li.querySelector(".title").after(span("tag", "ブックマークにない"));
       li.title = item.url;
       return li;
@@ -628,20 +637,10 @@ function renderSelectedList(items) {
   );
 }
 
-$("selectedCount").addEventListener("click", () => {
-  $("selectedSection").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// 選択中の一覧はハンドルをドラッグして並べ替える(= 開く順)。Undo で戻せる
+enableDragReorder($("selectedList"), (keys) => changeSelection(() => (editing.order = keys)));
 
-for (const tab of document.querySelectorAll(".view-tab")) {
-  tab.addEventListener("click", () => {
-    view = tab.dataset.view;
-    chrome.storage.local.set({ editorView: view });
-    renderPicker();
-  });
-}
-
-$("setName").addEventListener("input", updateEditorFooter);
-$("bookmarkSearch").addEventListener("input", renderPicker);
+$("setName").addEventListener("input", updateEditorState);
 $("cancel").addEventListener("click", closeEditor);
 
 $("save").addEventListener("click", async () => {

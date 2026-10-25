@@ -3,7 +3,6 @@
 //             background: true ならタブを開いても今のタブのまま切り替えない
 //   bindings: { [url]: bookmarkId }                     この環境でのブックマークとの対応表(sets.js 参照)
 //   slots:    [{ type: "folder" | "set", id } | null] x3  ショートカットキーのスロット
-//   editorView: "tree" | "bar"                          セット編集画面で最後に使った表示
 // ブックマークの ID は環境ごとに振られる番号なので、エクスポートする sets には入れない。
 
 export const SLOT_COUNT = 3;

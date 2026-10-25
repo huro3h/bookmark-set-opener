@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bookmarks Launcher",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "ブックマークフォルダの中身をワンクリックでまとめてタブに開く",
   "permissions": ["bookmarks", "storage", "favicon"],
   "action": {

@@ -86,6 +86,7 @@ function openSettings() {
   chrome.runtime.openOptionsPage();
   window.close();
 }
+document.getElementById("version").textContent = `v${chrome.runtime.getManifest().version}`;
 document.getElementById("settings").addEventListener("click", openSettings);
 document.getElementById("createSet").addEventListener("click", openSettings);
 
