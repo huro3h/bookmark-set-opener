@@ -90,9 +90,9 @@ export async function importData(data) {
     throw new Error("Bookmarks Launcher で書き出したファイルではありません");
   }
   const incoming = data.sets
-    .filter((s) => typeof s?.name === "string" && Array.isArray(s.items))
+    .filter((s) => typeof s?.id === "string" && s.id && typeof s.name === "string" && Array.isArray(s.items))
     .map((s) => ({
-      id: typeof s.id === "string" && s.id ? s.id : crypto.randomUUID(),
+      id: s.id,
       name: s.name,
       background: s.background === true,
       items: s.items

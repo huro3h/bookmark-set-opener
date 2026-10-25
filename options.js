@@ -66,7 +66,7 @@ async function renderMain() {
       bg.title = "開いたタブに切り替えず、今見ているタブのままにする";
       const bgBox = document.createElement("input");
       bgBox.type = "checkbox";
-      bgBox.checked = set.background === true;
+      bgBox.checked = set.background;
       bgBox.addEventListener("change", async () => {
         set.background = bgBox.checked;
         await storeSets(sets);
@@ -647,7 +647,7 @@ $("save").addEventListener("click", async () => {
   const set = {
     id: editing.id ?? crypto.randomUUID(),
     name: $("setName").value.trim(),
-    background: sets.find((s) => s.id === editing.id)?.background === true,
+    background: sets.find((s) => s.id === editing.id)?.background ?? false,
     items: selectedItems(),
   };
   const i = sets.findIndex((s) => s.id === set.id);
