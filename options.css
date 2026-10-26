@@ -205,18 +205,44 @@ section > h2:first-child {
   border-bottom: 1px solid var(--border);
 }
 
+/* 名前を押せるようにしたので、誤ってドラッグのハンドルを掴まないよう少し離す */
 .set-text {
   flex: 1 1 auto;
   min-width: 0;
+  margin-left: 4px;
 }
 
+/* 押すと入力欄に変わる。入力欄と同じ余白・枠の太さにして、切り替えても行の高さと文字の位置が動かないようにする。
+   件数の行は名前の文字にそろえて同じだけ字下げする */
 .set-name {
+  display: block;
+  max-width: 100%;
+  padding: 1px 6px;
   overflow: hidden;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
+  cursor: text;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.set-name:hover {
+  background: var(--hover);
+}
+
+/* .input より後ろに書いていないので、詳しく指定して余白を勝たせる */
+.input.set-name-input {
+  display: block;
+  padding: 1px 6px;
+  line-height: normal;
 }
 
 .set-meta {
+  padding-left: 7px;
   font-size: 12px;
   color: var(--muted);
 }

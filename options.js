@@ -47,9 +47,13 @@ async function renderMain() {
 
       const text = document.createElement("div");
       text.className = "set-text";
-      const name = document.createElement("div");
+      // 名前は押すとその場で入力欄に変わる(編集画面を開かずに名前だけ変えられるように)
+      const name = document.createElement("button");
+      name.type = "button";
       name.className = "set-name";
+      name.title = "クリックで名前を変更";
       name.textContent = set.name;
+      name.addEventListener("click", () => renameInPlace(set, name));
       const meta = document.createElement("div");
       meta.className = "set-meta";
       meta.textContent = `${set.items.length} 件`;
@@ -148,6 +152,43 @@ enableDragReorder($("sets"), async (keys) => {
   await storeSets(sets);
   await renderMain();
 });
+
+// Enter かフォーカスが外れたら保存、Esc で取り消す。空や変わっていないときは元の名前に戻すだけ。
+// 一覧ごと描き直すと、別の行の名前を押してフォーカスが外れたときにその押した先が消えるので、この行だけ戻す。
+// 名前はスロットの選択肢にも出るので、そちらは描き直す。
+function renameInPlace(set, nameEl) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "input set-name-input";
+  input.value = set.name;
+  input.setAttribute("aria-label", "セットの名前");
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    const value = input.value.trim();
+    const changed = save && value && value !== set.name;
+    if (changed) set.name = value;
+    nameEl.textContent = set.name;
+    input.replaceWith(nameEl);
+    if (changed) {
+      await storeSets(sets);
+      await renderSlots();
+    }
+  };
+  input.addEventListener("keydown", (ev) => {
+    if (ev.isComposing) return; // 変換の確定の Enter・取り消しの Esc では終わらせない
+    if (ev.key !== "Enter" && ev.key !== "Escape") return;
+    ev.preventDefault(); // 止めないと、フォーカスを戻した名前のボタンがこの Enter で押されてまた入力欄になる
+    finish(ev.key === "Enter");
+    nameEl.focus(); // キーで終えたときは名前のボタンにフォーカスを戻す
+  });
+  input.addEventListener("blur", () => finish(true));
+}
 
 // 1クリックで消し、トーストの「元に戻す」で戻せるようにする(確認の二度押しはしない)
 // 元のすぐ下に「〜 のコピー」として足す。中身と「バックグラウンドで開く」は引き継ぎ、スロットの割り当ては引き継がない。
