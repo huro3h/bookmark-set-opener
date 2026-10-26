@@ -12,6 +12,7 @@
   --warn-bg: #fef7e0;
   --warn-fg: #8a5a00;
   --error: #d93025;
+  --dup: #0fa3b1; /* smart-keysmith のアイコンと同じ青緑 */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -136,8 +137,18 @@ section > h2:first-child {
   color: var(--accent);
 }
 
+.icon-btn.dup {
+  color: var(--dup);
+}
+
 .icon-btn.danger {
   color: var(--error);
+}
+
+.icon-btn.dup:hover {
+  color: var(--on-accent);
+  background: var(--dup);
+  border-color: var(--dup);
 }
 
 .icon-btn.edit:hover {

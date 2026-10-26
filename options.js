@@ -16,6 +16,8 @@ async function load() {
 
 // simple_memo と同じ lucide 系の線画
 const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+// 複製は smart-keysmith と同じ lucide の copy-plus(重なった四角だけだとクリップボードへのコピーに見える)
+const DUP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="15" x2="15" y1="12" y2="18"/><line x1="12" x2="18" y1="15" y2="15"/><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
 const DELETE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
 
 function iconButton(icon, label, className, onClick) {
@@ -77,6 +79,7 @@ async function renderMain() {
         handle(),
         text,
         bg,
+        iconButton(DUP_ICON, "複製", "dup", () => duplicateSet(set.id)),
         iconButton(EDIT_ICON, "編集", "edit", () => openEditor(set)),
         iconButton(DELETE_ICON, "削除", "danger", () => deleteSet(set.id)),
       );
@@ -147,6 +150,17 @@ enableDragReorder($("sets"), async (keys) => {
 });
 
 // 1クリックで消し、トーストの「元に戻す」で戻せるようにする(確認の二度押しはしない)
+// 元のすぐ下に「〜 のコピー」として足す。中身と「バックグラウンドで開く」は引き継ぎ、スロットの割り当ては引き継がない。
+async function duplicateSet(id) {
+  const index = sets.findIndex((s) => s.id === id);
+  const set = sets[index];
+  const copy = { ...set, id: crypto.randomUUID(), name: `${set.name} のコピー`, items: set.items.map((item) => ({ ...item })) };
+  sets.splice(index + 1, 0, copy);
+  await storeSets(sets);
+  await renderMain();
+  toast(`「${set.name}」を複製しました`);
+}
+
 async function deleteSet(id) {
   const index = sets.findIndex((s) => s.id === id);
   const set = sets[index];
