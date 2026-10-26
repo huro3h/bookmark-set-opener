@@ -446,7 +446,10 @@ function toggleAll(ids) {
 // ブックマーク バー(id "1")の中身を横に並べ、ほかの最上位フォルダ(その他のブックマーク等)は右端に置く。
 // 表示はブラウザと同じくファビコンとサイト名だけで、URL はマウスを乗せたときのツールチップに出す。
 // ブックマークは押すと選択/解除。フォルダは押すとドロップダウンのメニューを開き、サブフォルダは右にサブメニューを出す。
-// 本物のバーは入りきらない分を「»」にしまうが、ここでは全部見えるよう折り返す。
+// 入りきらない分はブラウザと同じく右端の「»」にしまい、押すとフォルダと同じメニューで出す。
+const OVERFLOW = "overflow"; // 「»」のメニューの folderId の代わり
+let overflowEntries = []; // 「»」にしまったもの(バーの並び順)
+
 function renderBar() {
   closeMenus(0);
   const bar = document.createElement("div");
@@ -454,11 +457,48 @@ function renderBar() {
   const items = document.createElement("div");
   items.className = "bmbar-items";
   for (const e of childrenOf.get("1") ?? []) items.append(barItem(e));
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "bm-chip bmbar-more";
+  more.dataset.kind = "overflow-menu";
+  more.title = "入りきらないブックマーク";
+  more.setAttribute("aria-label", "入りきらないブックマーク");
+  more.textContent = "»";
+  menuOpener(more, OVERFLOW, 0);
   const rest = document.createElement("div");
   rest.className = "bmbar-rest";
   for (const top of childrenOf.get(null)) if (top.id !== "1") rest.append(barItem(top));
-  bar.append(items, rest);
+  bar.append(items, more, rest);
   $("picker").replaceChildren(bar);
+  layoutBar();
+  barObserver.disconnect();
+  barObserver.observe(bar);
+}
+
+// 幅が変わるたびに、バーに収まる分だけ出す。収まらないものから後ろは全部「»」へ(ブラウザと同じく途中を飛ばさない)
+const barObserver = new ResizeObserver(() => layoutBar());
+
+function layoutBar() {
+  const items = document.querySelector(".bmbar-items");
+  const more = document.querySelector(".bmbar-more");
+  if (!items) return;
+  const chips = [...items.children];
+  for (const c of chips) c.hidden = false;
+  more.hidden = true;
+  if (items.scrollWidth > items.clientWidth) {
+    more.hidden = false; // 「»」の分だけ狭くなってから測り直す
+    const limit = items.getBoundingClientRect().right;
+    const first = chips.findIndex((c) => c.getBoundingClientRect().right > limit);
+    for (const c of chips.slice(first)) c.hidden = true;
+  }
+  const entries = childrenOf.get("1") ?? [];
+  const hidden = chips.flatMap((c, i) => (c.hidden ? [entries[i]] : []));
+  const changed = hidden.length !== overflowEntries.length || hidden.some((e, i) => e !== overflowEntries[i]);
+  overflowEntries = hidden;
+  // 開いている「»」のメニューは、中身が変わったら閉じる
+  if (!changed) return;
+  if (openMenus[0]?.folderId === OVERFLOW) closeMenus(0);
+  if (editing) syncSelection();
 }
 
 function barItem(e) {
@@ -481,31 +521,36 @@ function folderMenuButton(e, className, level) {
   b.insertAdjacentHTML("beforeend", FOLDER_SVG);
   b.append(span("title", e.title || "(名前なし)"));
   if (level > 0) b.append(span("submenu-arrow", "›"));
-  const open = () => openMenu(e.id, b, level);
+  menuOpener(b, e.id, level);
+  return b;
+}
+
+// 押すとメニューを開くボタンの動き(フォルダと「»」で共通)
+function menuOpener(b, folderId, level) {
+  const open = () => openMenu(folderId, b, level);
   let hoveredOpenAt = 0;
   b.addEventListener("click", () => {
     // バーのフォルダは押すたびに開閉する。メニューの中のフォルダは開くだけ。
     // ただし乗せただけで開いた直後のクリックでは閉じない(開いたものを押した瞬間に閉じてしまうため)
     const justHovered = Date.now() - hoveredOpenAt < 600;
-    if (level === 0 && openMenus[0]?.folderId === e.id && !justHovered) closeMenus(0);
+    if (level === 0 && openMenus[0]?.folderId === folderId && !justHovered) closeMenus(0);
     else open();
   });
   // ブラウザと同じく、メニューの中ではマウスを乗せただけでサブメニューを開く。
   // バーの上でも、どれかのメニューを開いている間は乗せるだけで切り替える
   b.addEventListener("mouseenter", () => {
-    if (level > 0 || (openMenus.length && openMenus[0].folderId !== e.id)) {
+    if (level > 0 || (openMenus.length && openMenus[0].folderId !== folderId)) {
       open();
       hoveredOpenAt = Date.now();
     }
   });
-  return b;
 }
 
 let openMenus = []; // [{ folderId, el }] 階層の浅い順
 
 function closeMenus(fromLevel) {
   for (const m of openMenus.splice(fromLevel)) m.el.remove();
-  for (const b of document.querySelectorAll("[data-kind=folder-menu].open")) {
+  for (const b of document.querySelectorAll("[data-kind$=-menu].open")) {
     if (!openMenus.some((m) => m.anchor === b)) b.classList.remove("open");
   }
 }
@@ -518,7 +563,7 @@ function openMenu(folderId, anchor, level) {
   const menu = document.createElement("div");
   menu.className = "bm-menu";
   menu.setAttribute("role", "menu");
-  const children = childrenOf.get(folderId);
+  const children = folderId === OVERFLOW ? overflowEntries : childrenOf.get(folderId);
   for (const e of children) {
     if (e.kind === "folder") {
       menu.append(folderMenuButton(e, "menu-item folder", level + 1));
@@ -531,7 +576,8 @@ function openMenu(folderId, anchor, level) {
       menu.append(b);
     }
   }
-  const ids = descendantsOf.get(folderId);
+  // 「»」はフォルダではないので「すべて選択」を付けない
+  const ids = descendantsOf.get(folderId) ?? [];
   if (ids.length) {
     menu.append(Object.assign(document.createElement("hr"), { className: "menu-sep" }));
     const all = document.createElement("button");
@@ -555,7 +601,7 @@ function openMenu(folderId, anchor, level) {
   let left, top;
   if (level === 0) {
     left = Math.min(a.left, innerWidth - w - 8);
-    // ボタンではなくバーの下端から出す(折り返して2段になっても下の段を隠さない)
+    // ボタンではなくバーの下端から出す
     top = anchor.closest(".bmbar").getBoundingClientRect().bottom + 2;
   } else {
     const parent = openMenus[level - 1].el.getBoundingClientRect();
@@ -572,7 +618,7 @@ function openMenu(folderId, anchor, level) {
 
 // メニューの外を押す・Esc・スクロールで閉じる(メニューは position: fixed なので、スクロールするとずれる)
 document.addEventListener("mousedown", (ev) => {
-  if (openMenus.length && !ev.target.closest(".bm-menu, .bm-chip.folder")) closeMenus(0);
+  if (openMenus.length && !ev.target.closest(".bm-menu, .bm-chip.folder, .bmbar-more")) closeMenus(0);
 });
 document.addEventListener("keydown", (ev) => {
   if (ev.key === "Escape" && openMenus.length) closeMenus(0);
@@ -582,7 +628,7 @@ window.addEventListener("resize", () => closeMenus(0));
 
 // 選択状態を見た目に反映する。描き直すとフォーカスやスクロールが飛ぶので、今ある要素のクラスだけを書き換える。
 //   ブックマーク: 選択中は .selected(枠とハイライト)
-//   バーとメニューのフォルダ: 中(サブフォルダを含む)に選択があれば .has-selected
+//   バーとメニューのフォルダ: 中(サブフォルダを含む)に選択があれば .has-selected。「»」はしまったものの中に選択があれば
 //   メニューの「すべて選択」: 全部選択済みなら「すべて解除」に変える
 function syncSelection() {
   const mark = (el, selected) => {
@@ -595,6 +641,9 @@ function syncSelection() {
       mark(el, editing.selected.has(id));
     } else if (kind === "folder-menu") {
       el.classList.toggle("has-selected", descendantsOf.get(id).some((t) => editing.selected.has(t)));
+    } else if (kind === "overflow-menu") {
+      const ids = overflowEntries.flatMap((e) => (e.kind === "folder" ? descendantsOf.get(e.id) : [e.id]));
+      el.classList.toggle("has-selected", ids.some((t) => editing.selected.has(t)));
     } else if (kind === "select-all") {
       const ids = descendantsOf.get(id);
       const all = ids.every((t) => editing.selected.has(t));

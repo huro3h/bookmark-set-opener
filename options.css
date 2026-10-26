@@ -407,12 +407,29 @@ select.missing {
   border-radius: 8px;
 }
 
+/* 1行に並べ、入りきらない分は options.js が隠して「»」にしまう */
 .bmbar-items {
   display: flex;
   flex: 1 1 auto;
-  flex-wrap: wrap;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
+}
+
+.bmbar-items > .bm-chip {
+  flex: 0 0 auto;
+}
+
+.bm-chip[hidden] {
+  display: none;
+}
+
+.bmbar-more {
+  flex: 0 0 auto;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 6px;
+  font-size: 15px;
 }
 
 /* その他のブックマーク等は右端(ブラウザと同じ) */
