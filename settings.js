@@ -2,10 +2,10 @@
 //   sets:     [{ id, name, background, items: [{ url, title }] }]  ポップアップでの表示順。エクスポートの対象
 //             background: true ならタブを開いても今のタブのまま切り替えない
 //   bindings: { [url]: bookmarkId }                     この環境でのブックマークとの対応表(sets.js 参照)
-//   slots:    [{ type: "folder" | "set", id } | null] x3  ショートカットキーのスロット
+//   slots:    [{ type: "folder" | "set", id } | null] x5  ショートカットキーのスロット
 // ブックマークの ID は環境ごとに振られる番号なので、エクスポートする sets には入れない。
 
-export const SLOT_COUNT = 3;
+export const SLOT_COUNT = 5;
 
 export async function getSettings() {
   const { sets, bindings, slots } = await chrome.storage.local.get(["sets", "bindings", "slots"]);

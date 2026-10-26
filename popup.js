@@ -93,7 +93,7 @@ document.getElementById("createSet").addEventListener("click", openSettings);
 async function load() {
   let slots, commands;
   [sets, { slots }, commands] = await Promise.all([loadSets(), getSettings(), chrome.commands.getAll()]);
-  // コマンド名は "01_open_slot" 〜 "03_open_slot"。キー未設定なら shortcut は空文字
+  // コマンド名は "01_open_slot" 〜 "05_open_slot"。キー未設定なら shortcut は空文字
   const shortcutOf = new Map(commands.map((c) => [c.name, c.shortcut]));
   keyOf = new Map(
     slots.flatMap((t, i) => {

@@ -24,7 +24,7 @@ description: Bookmarks Launcher (ブックマークのセットをまとめて�
 ```
 sets:     [{ id: uuid, name, background, items: [{ url, title }] }]   表示順。エクスポートの対象
 bindings: { [url]: bookmarkId }                           この環境だけの対応表
-slots:    [{ type: "folder" | "set", id } | null] × 3
+slots:    [{ type: "folder" | "set", id } | null] × 5
 ```
 
 ## 中心にある設計判断
@@ -185,8 +185,9 @@ smart-keysmith にあるタッチ用(Pointer Events)の処理は、拡張の設�
 
 ### ショートカットキー
 
-- コマンド名は `01_open_slot` 〜 `03_open_slot`。`chrome://extensions/shortcuts` は manifest のキー名順で並ぶので
-  数字を頭に付けている。`parseInt(command)` でスロット番号も取れる。`suggested_key` は付けない
+- コマンド名は `01_open_slot` 〜 `05_open_slot`。`chrome://extensions/shortcuts` は manifest のキー名順で並ぶので
+  数字を頭に付けている。`parseInt(command)` でスロット番号も取れる。`suggested_key` は付けない(付けられるのは4つまでだが、付けなければ数の制限はない)。2.3.0 で3つから5つに増やした(使わない枠が `chrome://extensions/shortcuts` に並ぶのを嫌って、多めには取らない)。
+  コマンド名の組み立て(`0${i + 1}_open_slot`)は1桁前提なので、10個以上にするなら直す
 - 失敗(未割り当て・削除済み・空)は画面に出ないので、アイコンに赤い「!」バッジを4秒出し、理由を `setTitle` に入れる
 - セットを削除すると、それを割り当てていたスロットは空にする。フォルダの削除は検知していない(設定画面に「見つかりません」と出る)
 
