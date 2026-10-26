@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Bookmarks Launcher",
-  "version": "2.3.0",
-  "description": "ブックマークフォルダの中身をワンクリックでまとめてタブに開く",
+  "version": "2.3.1",
+  "description": "選んだブックマークのセットを、ワンクリックでまとめてタブに開く",
   "permissions": ["bookmarks", "storage", "favicon"],
   "action": {
     "default_title": "Bookmarks Launcher",
@@ -24,19 +24,19 @@
   },
   "commands": {
     "01_open_slot": {
-      "description": "スロット1のフォルダを開く"
+      "description": "スロット1を開く"
     },
     "02_open_slot": {
-      "description": "スロット2のフォルダを開く"
+      "description": "スロット2を開く"
     },
     "03_open_slot": {
-      "description": "スロット3のフォルダを開く"
+      "description": "スロット3を開く"
     },
     "04_open_slot": {
-      "description": "スロット4のフォルダを開く"
+      "description": "スロット4を開く"
     },
     "05_open_slot": {
-      "description": "スロット5のフォルダを開く"
+      "description": "スロット5を開く"
     }
   },
   "icons": {
