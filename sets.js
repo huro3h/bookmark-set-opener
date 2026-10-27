@@ -70,7 +70,7 @@ export async function storeSets(resolvedSets) {
 
 // ---- エクスポート / インポート ----
 
-const FORMAT = "bookmarks-launcher";
+const FORMAT = "bookmark-set-opener";
 
 export function exportData(sets) {
   return {
@@ -87,7 +87,7 @@ export function exportData(sets) {
 // 取り込んだセットの数を返す。形式が違えば例外。
 export async function importData(data) {
   if (data?.format !== FORMAT || !Array.isArray(data.sets)) {
-    throw new Error("Bookmarks Launcher で書き出したファイルではありません");
+    throw new Error("Bookmark Set Opener で書き出したファイルではありません");
   }
   const incoming = data.sets
     .filter((s) => typeof s?.id === "string" && s.id && typeof s.name === "string" && Array.isArray(s.items))

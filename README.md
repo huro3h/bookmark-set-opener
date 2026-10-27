@@ -1,4 +1,4 @@
-# Bookmarks Launcher
+# Bookmark Set Opener
 
 複数のブックマークを、ワンクリックでまとめて新しいタブに開く Chrome 拡張 (MV3)。
 
@@ -80,7 +80,7 @@ Undo / Redo・キャンセル・保存のボタンは、見出しと名前の欄
 ## 開発
 
 実機テストは Playwright + Brave Browser Nightly。詳細は
-`.claude/skills/bookmarks-launcher/SKILL.md` を参照。
+`.claude/skills/bookmark-set-opener/SKILL.md` を参照。
 
 ## ライセンス
 

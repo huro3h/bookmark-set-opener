@@ -1,9 +1,9 @@
 ---
-name: bookmarks-launcher
-description: Bookmarks Launcher (ブックマークのセットをまとめてタブに開く Chrome 拡張) を改修・デバッグするときに使う。セットとブックマークの照合(ID と URL の二段構え)、エクスポート形式、タブを開く処理を service worker に置いた理由、テスト手順を記録している。
+name: bookmark-set-opener
+description: Bookmark Set Opener (ブックマークのセットをまとめてタブに開く Chrome 拡張) を改修・デバッグするときに使う。セットとブックマークの照合(ID と URL の二段構え)、エクスポート形式、タブを開く処理を service worker に置いた理由、テスト手順を記録している。
 ---
 
-# Bookmarks Launcher 開発メモ
+# Bookmark Set Opener 開発メモ
 
 ## ファイル構成
 
@@ -60,7 +60,7 @@ slots:    [{ type: "folder" | "set", id } | null] × 5
 ### エクスポート形式
 
 ```json
-{ "format": "bookmarks-launcher", "version": 1, "exportedAt": "...",
+{ "format": "bookmark-set-opener", "version": 1, "exportedAt": "...",
   "sets": [{ "id": "<uuid>", "name": "...", "items": [{ "url": "...", "title": "..." }] }] }
 ```
 

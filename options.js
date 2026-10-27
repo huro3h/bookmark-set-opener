@@ -273,7 +273,7 @@ $("export").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(exportData(sets), null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `bookmarks-launcher-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `bookmark-set-opener-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
   showMessage(`${sets.length} 個のセットを書き出しました`);

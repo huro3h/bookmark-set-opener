@@ -10,6 +10,13 @@
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-27
+
+### Changed
+
+- 名前を「Bookmarks Launcher」から「Bookmark Set Opener」に変えた。
+- エクスポートしたファイルの `format` を `bookmarks-launcher` から `bookmark-set-opener` に、ファイル名を `bookmark-set-opener-日付.json` にした。改名前に書き出したファイルはインポートできない。
+
 ## [2.4.0] - 2026-10-26
 
 ### Added
