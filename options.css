@@ -282,9 +282,27 @@ section > h2:first-child {
   cursor: grabbing;
 }
 
-li.dragging {
-  background: var(--hover);
-  opacity: 0.5;
+/* 掴んでいる行。行そのものは離すまで動かさない */
+li.dragging,
+li.dragging:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* 離したときに入る位置。行の境目に重ねる */
+.sets,
+.selected-list {
+  position: relative;
+}
+
+.drop-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
 }
 
 /* ---- スロット ---- */

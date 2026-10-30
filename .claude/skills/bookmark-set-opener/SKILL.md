@@ -117,8 +117,24 @@ slots:    [{ type: "folder" | "set", id } | null] × 5
 
 smart-keysmith の方式をそのまま共通モジュールにした。`handle()` が `⠿` のハンドル(これだけ `draggable`)を作り、
 `enableDragReorder(listEl, onReorder)` がリスト側に HTML5 の drag イベントを張る(行を描き直しても生き残る)。
-ドラッグ中は行そのものを DOM の中で動かし(カーソルより下でいちばん近い行の前へ)、`dragend` で並びが変わっていれば
-`onReorder(data-key の配列)` を呼ぶ。行の中のボタン(× や編集)はハンドル以外なので普段どおり押せる。
+ドラッグ中は行を動かさず入る位置を線(`.drop-line`)で示し、離したときに並びが変わっていれば
+`onReorder(data-key の配列)` を呼ぶ(線は `div` なので行の数え方は `:scope > li`)。
+
+2026-10-31 にユーザーの依頼で、ドラッグの見せ方を ~/projects の並べ替え UI 全部(yt-live-helper / smart-reload /
+bookmark-set-opener / splat3-rotations / yt-quick-filter / smart-keysmith)でそろえた。yt-live-helper で試して
+「かなりわかりやすくなった」と言われたものを広げた:
+  - **掴んでいる行をアクセント色の半透明で塗る**(`color-mix(in srgb, var(--accent) 18%, transparent)` 程度)。
+  - **ドラッグ中は行を動かさず、離したときに入る位置を同じ色の 2px の線で示す**。線はリストの中に絶対配置で重ね
+    (リストに `position: relative`)、`offsetTop` で行の境目に置く。並びを変えるのは離したとき。
+  - 入る位置は「カーソルより下で中心がいちばん近い行の手前」。**掴んでいる行も候補に含める**(元の位置に戻すと線が自分の上下の端に出る)。
+  - 行が動かないので **`drop` は確実に来る**(行がカーソルの下で入れ替わり続けていたのが `drop` の来ない原因だった)。
+    `drop` で `dropped` を立て、`dragend` でそれが立っていれば並べ替えて保存。リストの外で離す・Esc は並びを変えない。
+  - **端での自動スクロールを自前で持つ**。ブラウザ任せだと端のごく狭い範囲でしか動かず遅く、「スクロールが固い」と言われた。
+    端から 64px の帯に入ったら、端に寄せるほど速く(最大 18px / フレーム)、`requestAnimationFrame` で回す。
+    カーソル位置は `document` の `dragover` で拾い、それが 200ms 来なければウィンドウの外に出たとみなして止める。
+    スクロールで行が流れたら線も引き直す。
+
+行の中のボタン(× や編集)はハンドル以外なので普段どおり押せる。
 smart-keysmith にあるタッチ用(Pointer Events)の処理は、拡張の設定画面はマウスで使うので入れていない。
 
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bookmark Set Opener",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "選んだブックマークのセットを、ワンクリックでまとめてタブに開く",
   "permissions": ["bookmarks", "storage", "favicon"],
   "action": {
