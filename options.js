@@ -2,7 +2,7 @@ import { readTree } from "./bookmarks.js";
 import { exportData, importData, loadSets, storeSets } from "./sets.js";
 import { getSettings, parseTargetKey, saveSlots, targetKey } from "./settings.js";
 import { enableDragReorder, handle } from "./drag.js";
-import { canPickFile, exportToFile, loadExportHandle } from "./export-file.js";
+import { canPickFolder, exportToFile, loadExportDir, loadFileName, saveFileName } from "./export-file.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -271,35 +271,59 @@ $("toast").addEventListener("mouseleave", () => $("toast").classList.contains("s
 $("newSet").addEventListener("click", () => openEditor(null));
 $("shortcuts").addEventListener("click", () => chrome.tabs.create({ url: "chrome://extensions/shortcuts" }));
 
-// 書き出し先は初回に選んだファイル(export-file.js)。拡張機能から見えるのはファイル名だけで、フォルダは分からない
-function showExportTarget(handle) {
-  if (!canPickFile) {
-    $("exportTarget").textContent = "ダウンロードフォルダ(このブラウザは書き出し先を選べません)";
+// 書き出し先は、初回に選んだフォルダの中の、欄で決めたファイル名のファイル(export-file.js)。
+// フォルダは名前しか分からない(フルパスは拡張機能から見えない)
+async function showExportTarget() {
+  $("exportFileName").value = await loadFileName();
+  if (!canPickFolder) {
+    $("exportDir").textContent = "ダウンロードフォルダ(このブラウザはフォルダを選べません)";
     $("changeExportTarget").hidden = true;
     return;
   }
-  $("exportTarget").textContent = handle ? handle.name : "未設定(初回に選びます)";
+  const dir = await loadExportDir();
+  $("exportDir").textContent = dir ? dir.name : "(フォルダは初回に選びます)";
 }
 
-async function exportSets({ choose = false } = {}) {
+async function exportSets({ chooseDir = false } = {}) {
+  // 欄を書き換えたままボタンを押したときも、その名前で書き出す
+  try {
+    $("exportFileName").value = await saveFileName($("exportFileName").value);
+  } catch (e) {
+    showMessage(e.message, true);
+    return;
+  }
   let result;
   try {
-    result = await exportToFile(`${JSON.stringify(exportData(sets), null, 2)}\n`, { choose });
+    result = await exportToFile(`${JSON.stringify(exportData(sets), null, 2)}\n`, { chooseDir });
   } catch {
-    showMessage("書き出せませんでした。「変更」から書き出し先を選び直してください", true);
+    showMessage("書き出せませんでした。「フォルダを変更」から書き出し先を選び直してください", true);
     return;
   }
   if (!result) {
     showMessage("エクスポートをやめました");
     return;
   }
-  if (!result.downloaded) showExportTarget(await loadExportHandle());
-  showMessage(`${result.name} に ${sets.length} 個のセットを書き出しました`);
+  await showExportTarget();
+  showMessage(`${result.path} に ${sets.length} 個のセットを書き出しました`);
 }
 
+// ファイル名は欄から離れたとき・Enter で覚える。使えない名前なら覚えている名前に戻す
+$("exportFileName").addEventListener("change", async () => {
+  try {
+    $("exportFileName").value = await saveFileName($("exportFileName").value);
+    showMessage("");
+  } catch (e) {
+    showMessage(e.message, true);
+    $("exportFileName").value = await loadFileName();
+  }
+});
+$("exportFileName").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing) $("exportFileName").blur();
+});
+
 $("export").addEventListener("click", () => exportSets());
-$("changeExportTarget").addEventListener("click", () => exportSets({ choose: true }));
-loadExportHandle().then(showExportTarget);
+$("changeExportTarget").addEventListener("click", () => exportSets({ chooseDir: true }));
+showExportTarget();
 
 $("import").addEventListener("click", () => $("importFile").click());
 $("importFile").addEventListener("change", async () => {
