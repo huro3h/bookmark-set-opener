@@ -72,12 +72,20 @@ export async function storeSets(resolvedSets) {
 
 const FORMAT = "bookmark-set-opener";
 
-// 書き出し先のファイルに上書きして git で差分を見るので、書き出した時刻は入れない
+// オブジェクトのキーを名前順に並べ直す(配列の並びはそのまま)。storage から読み直したセットはキーが名前順、
+// 設定画面で作ったばかりのセットは作った順になるので、そろえないと同じ中身でも書き出すたびに差分が出る
+function sortKeys(value) {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.keys(value).sort().map((k) => [k, sortKeys(value[k])]));
+}
+
+// 書き出し先のファイルに上書きして git で差分を見るので、書き出した時刻は入れず、セットのキーの並びもそろえる
 export function exportData(sets) {
   return {
     format: FORMAT,
     version: 1,
-    sets: strip(sets),
+    sets: sortKeys(strip(sets)),
   };
 }
 
