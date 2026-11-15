@@ -23,6 +23,10 @@
           <button type="button" id="import" class="button">インポート</button>
           <input type="file" id="importFile" accept=".json,application/json" hidden />
         </div>
+        <p class="note export-target">
+          エクスポート先: <span id="exportTarget">未設定(初回に選びます)</span>
+          <button type="button" id="changeExportTarget" class="link">変更</button>
+        </p>
         <p id="message" class="message"></p>
       </section>
 

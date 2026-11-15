@@ -2,6 +2,7 @@ import { readTree } from "./bookmarks.js";
 import { exportData, importData, loadSets, storeSets } from "./sets.js";
 import { getSettings, parseTargetKey, saveSlots, targetKey } from "./settings.js";
 import { enableDragReorder, handle } from "./drag.js";
+import { canPickFile, exportToFile, loadExportHandle } from "./export-file.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -91,6 +92,7 @@ async function renderMain() {
     }),
   );
   $("export").disabled = sets.length === 0;
+  $("changeExportTarget").disabled = sets.length === 0;
   await renderSlots();
 }
 
@@ -269,15 +271,35 @@ $("toast").addEventListener("mouseleave", () => $("toast").classList.contains("s
 $("newSet").addEventListener("click", () => openEditor(null));
 $("shortcuts").addEventListener("click", () => chrome.tabs.create({ url: "chrome://extensions/shortcuts" }));
 
-$("export").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(exportData(sets), null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `bookmark-set-opener-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showMessage(`${sets.length} 個のセットを書き出しました`);
-});
+// 書き出し先は初回に選んだファイル(export-file.js)。拡張機能から見えるのはファイル名だけで、フォルダは分からない
+function showExportTarget(handle) {
+  if (!canPickFile) {
+    $("exportTarget").textContent = "ダウンロードフォルダ(このブラウザは書き出し先を選べません)";
+    $("changeExportTarget").hidden = true;
+    return;
+  }
+  $("exportTarget").textContent = handle ? handle.name : "未設定(初回に選びます)";
+}
+
+async function exportSets({ choose = false } = {}) {
+  let result;
+  try {
+    result = await exportToFile(`${JSON.stringify(exportData(sets), null, 2)}\n`, { choose });
+  } catch {
+    showMessage("書き出せませんでした。「変更」から書き出し先を選び直してください", true);
+    return;
+  }
+  if (!result) {
+    showMessage("エクスポートをやめました");
+    return;
+  }
+  if (!result.downloaded) showExportTarget(await loadExportHandle());
+  showMessage(`${result.name} に ${sets.length} 個のセットを書き出しました`);
+}
+
+$("export").addEventListener("click", () => exportSets());
+$("changeExportTarget").addEventListener("click", () => exportSets({ choose: true }));
+loadExportHandle().then(showExportTarget);
 
 $("import").addEventListener("click", () => $("importFile").click());
 $("importFile").addEventListener("change", async () => {

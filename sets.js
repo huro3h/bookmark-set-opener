@@ -72,11 +72,11 @@ export async function storeSets(resolvedSets) {
 
 const FORMAT = "bookmark-set-opener";
 
+// 書き出し先のファイルに上書きして git で差分を見るので、書き出した時刻は入れない
 export function exportData(sets) {
   return {
     format: FORMAT,
     version: 1,
-    exportedAt: new Date().toISOString(),
     sets: strip(sets),
   };
 }

@@ -178,6 +178,11 @@ section > h2:first-child {
   flex: 1 1 auto;
 }
 
+.export-target {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .message {
   min-height: 1.4em;
   margin: 8px 0 0;
@@ -638,6 +643,12 @@ select.missing {
 
 .link:hover {
   text-decoration: underline;
+}
+
+.link:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
 }
 
 /* Undo / Redo。隣のキャンセル・保存と高さをそろえる。押せないときは薄く */

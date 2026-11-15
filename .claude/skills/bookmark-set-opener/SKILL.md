@@ -15,6 +15,7 @@ description: Bookmark Set Opener (ブックマークのセットをまとめて�
 | `background.js` | タブを開く処理の実行役(ポップアップからのメッセージとショートカットキーの両方)。`"type": "module"` |
 | `popup.*` | セットの一覧と確認だけ(フォルダ・検索欄は出さない)。左上に控えめな拡張名と `v<manifest の version>`、右上の歯車で設定画面 |
 | `options.*` | セットの一覧・編集・エクスポート/インポート、スロットの割り当て |
+| `export-file.js` | エクスポートの書き出し先(保存ダイアログで選んだファイルのハンドル)の記憶と上書き |
 | `icons/icon.svg` | アイコンの原本(ブックマークのリボンを2枚重ねた形)。ポップアップのセットの行にも同じ形を使っている |
 
 共有モジュールはすべて ES module で、3画面から `import` する。
@@ -60,7 +61,7 @@ slots:    [{ type: "folder" | "set", id } | null] × 5
 ### エクスポート形式
 
 ```json
-{ "format": "bookmark-set-opener", "version": 1, "exportedAt": "...",
+{ "format": "bookmark-set-opener", "version": 1,
   "sets": [{ "id": "<uuid>", "name": "...", "items": [{ "url": "...", "title": "..." }] }] }
 ```
 
@@ -69,6 +70,24 @@ slots:    [{ type: "folder" | "set", id } | null] × 5
 (同じファイルを読み直しても重複しない。全部を書き出したファイルを戻せば並びも書き出したときに戻る)。
 以前は同じ `id` をその場で置き換えていたので、並べ替えた後にバックアップを戻してもセットの並びが戻らなかった。
 並びの保存と復元は scratchpad の別スクリプト(セット3つ・木と違う中の並び)で、空の環境・並べ替え後・ファイルにないセットがある環境の3通りを確かめた。
+**書き出し先は固定のファイルに上書きする(2.6.0、ユーザーの依頼。2026-11-15)。** 書き出したファイルを
+git(ユーザーの個人設定用のプライベートリポジトリ)で管理して差分を見るため、~/projects の設定を書き出す拡張機能をそろえて
+同じ形にした(yt-live-helper の方式を元にした)。`export-file.js`:
+- 初回は `showSaveFilePicker`(id `export-file`)で選び、`FileSystemFileHandle` を IndexedDB `export-file`/`handles`/`exportFile` に
+  入れる。次からは `queryPermission` → 許可が切れていれば(ブラウザの再起動後)`requestPermission` → 断られたら選び直し。
+  設定画面は普通のタブなので、yt-live-helper のポップアップのように別タブへ開き直す処理は要らない。「変更」は `choose: true`
+- **ファイル名はブラウザごとに変えたい**(Chrome stable と dev で中身が違う。ユーザーの要望)。IndexedDB はブラウザ・プロフィールごとに
+  別なので、書き出し先はブラウザごとに覚える。ダイアログの初期名は `navigator.userAgentData.brands` から
+  `bookmark-set-opener-<chrome|brave|edge>.json`。**stable と dev は区別できない**(どのチャンネルもブランドは「Google Chrome」で、
+  チャンネルを示す値は拡張機能から見えない)ので、dev ではダイアログで名前を足してもらう。オプションにファイル名の欄を作る案は、
+  ダイアログで名前を付ければ済むので採らなかった
+- 差分にならないよう **`exportedAt` を消した**(インポートは元から見ていない)。末尾に改行
+- **Brave Nightly には `showSaveFilePicker` が無い**(`undefined`)。その場合は同じ名前の `<a download>` に戻し、「変更」を隠す
+- セットが無いときは「エクスポート」と一緒に「変更」も押せなくする(「変更」も選んだあとにそのまま書き出すため)
+- 確認(Brave Nightly、16項目): ダウンロードに戻る・ファイル名・時刻なし/ダイアログを OPFS のハンドルを返すものに差し替えて、
+  初回だけダイアログ・中身・表示・開き直しても覚えている・2回目は同じ中身・「変更」・キャンセル・セットが無ければ押せない。
+  **未確認:** 本物の保存ダイアログと、再起動後の許可の確認(Chrome で手で確かめる)
+
 スロットはファイルに含めない(フォルダの ID は環境ごとに違うため、セットだけ持ち運んでも意味が通らない)。
 `chrome.storage.sync` での自動同期は採らなかった。容量が合計約 100KB と小さいのと、
 パッケージ化されていない拡張は環境ごとに拡張の ID が変わって同期されない(manifest に `key` が要る)ため。
@@ -267,7 +286,9 @@ Enter・blur で保存、Esc で取り消し。空白だけ・変わっていな
      落とす先の行の上端あたりを指すと、その行の前に入る
    - Undo ボタンを `click()` するとメニューは閉じる(外側を押したことになる)。メニューを開いたまま戻すなら
      `keyboard.press('Control+z')`。名前の欄で Ctrl+Z を押すと文字入力の Undo が効いて名前が消えるので、入れ直してから保存する
-   - エクスポートは `page.waitForEvent('download')`、インポートは `setInputFiles('#importFile', path)`
+   - エクスポートは `page.waitForEvent('download')`(Brave には保存ダイアログが無いのでダウンロードになる)、
+     インポートは `setInputFiles('#importFile', path)`。保存ダイアログの経路は `addInitScript` で `window.showSaveFilePicker` を
+     `navigator.storage.getDirectory()` の `getFileHandle(name, { create: true })` を返すものに差し替えて確かめる
 4. 2026-10-25 に通した確認項目(108項目): ポップアップ(セットがないときの案内・フォルダと検索欄を出さない・拡張名の右にバージョン・拡張名は 11px 以下・歯車で設定画面・
    キー未設定ならキー表示なし・設定済みなら実際のキーを表示) / 編集画面(ツリー・タブ・検索欄・チェックボックス・見出しと説明文がない・
    メニューから選択・.selected 表示・ファビコンの読み込みとキャッシュ済みサイトは実物・全幅・バーの並びと右端のその他・
