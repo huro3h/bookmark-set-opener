@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bookmark Set Opener",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "選んだブックマークのセットを、ワンクリックでまとめてタブに開く",
   "permissions": ["bookmarks", "storage", "favicon"],
   "action": {
@@ -37,6 +37,12 @@
     },
     "05_open_slot": {
       "description": "スロット5を開く"
+    },
+    "06_open_slot": {
+      "description": "スロット6を開く"
+    },
+    "07_open_slot": {
+      "description": "スロット7を開く"
     }
   },
   "icons": {
